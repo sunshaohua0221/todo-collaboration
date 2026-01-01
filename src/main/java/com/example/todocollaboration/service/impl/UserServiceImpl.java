@@ -48,8 +48,7 @@ public class UserServiceImpl implements UserService {
     public String login(String username, String password) {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        final UserDetails userDetails = this.loadUserByUsername(username);
-        return jwtUtil.generateToken(userDetails.getUsername());
+        return jwtUtil.generateToken(username);
     }
 
 

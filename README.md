@@ -74,8 +74,17 @@ spring.datasource.password=your_password
 ```
 
 ### 安装kafka
+启动
+```bash
+cd kafka_2.12-3.8.0
+./bin/kafka-server-start.sh -daemon config/kraft/server.properties
+```
 
 ### 安装redis
+```bash
+cd redis-7.0.15
+redis-server redis.conf
+```
 
 ## 使用说明
 

@@ -32,11 +32,11 @@ public class JwtUtil {
     public String generateToken(String username) {
         Map<String, Object> claims = new HashMap<>();
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(username)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration * 1000))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .claims(claims)
+                .subject(username)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + expiration * 1000))
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -46,9 +46,9 @@ public class JwtUtil {
     }
 
     // 验证令牌是否有效 (检查用户名是否匹配且未过期)
-    public Boolean validateToken(String token, UserDetails userDetails) {
+    public Boolean validateToken(String token, String userName) {
         final String username = getUsernameFromToken(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        return (username.equals(userName) && !isTokenExpired(token));
     }
 
     // 检查令牌是否过期

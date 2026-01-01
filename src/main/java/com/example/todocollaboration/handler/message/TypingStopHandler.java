@@ -16,7 +16,8 @@ public class TypingStopHandler extends BaseMessageHandler {
 
     @Override
     public void handleMessage(Long userId, Map<String, Object> message) throws Exception {
-        Long listId = Long.valueOf(message.get("listId").toString());
+        Map<String, Object> data = (Map<String, Object>) message.get("data");
+        Long listId = Long.parseLong((String) data.get("listId"));
 
         TodoList todoList = todoListService.getTodoListById(listId);
         if (todoList == null) {

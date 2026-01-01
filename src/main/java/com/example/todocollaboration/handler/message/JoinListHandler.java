@@ -15,7 +15,8 @@ public class JoinListHandler extends BaseMessageHandler {
 
     @Override
     public void handleMessage(Long userId, Map<String, Object> message) throws Exception {
-        Long listId = Long.valueOf(message.get("listId").toString());
+        Map<String, Object> data = (Map<String, Object>) message.get("data");
+        Long listId = Long.parseLong((String) data.get("listId"));
 
         // 检查用户是否有权访问该列表
         if (!permissionService.hasPermission(userId, listId, "view")) {

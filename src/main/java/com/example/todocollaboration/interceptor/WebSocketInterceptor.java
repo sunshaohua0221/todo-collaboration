@@ -1,8 +1,11 @@
 package com.example.todocollaboration.interceptor;
 
+import com.example.todocollaboration.entity.User;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.socket.WebSocketHandler;
@@ -16,18 +19,13 @@ public class WebSocketInterceptor implements HandshakeInterceptor {
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, 
                                   WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
-        
-        if (request instanceof ServletServerHttpRequest) {
-            ServletServerHttpRequest servletRequest = (ServletServerHttpRequest) request;
-            String userId = servletRequest.getServletRequest().getHeader("userId");
-            if (StringUtils.hasText(userId)) {
-                attributes.put("userId", Long.valueOf(userId));
-                return true;
-            }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getDetails();
+        if (user == null) {
+            return false;
         }
-        
-        // 如果没有用户信息，拒绝握手
-        return false;
+        attributes.put("userId", user.getId());
+        return true;
     }
 
     @Override

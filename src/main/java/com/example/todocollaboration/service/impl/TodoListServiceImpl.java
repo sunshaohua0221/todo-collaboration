@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -40,20 +41,9 @@ public class TodoListServiceImpl implements TodoListService {
     public Page<TodoList> getTodoLists(Map<String, Object> map) {
         Page<TodoList> page = new Page<>((Integer) map.get("pageNo"), (Integer) map.get("pageSize"));
         QueryWrapper<TodoList> queryWrapper = new QueryWrapper<>();
-        if (map.get("title") != null) {
-            queryWrapper.eq("title", map.get("title"));
-        }
-        if (map.get("status") != null) {
-            queryWrapper.eq("status", map.get("status"));
-        }
-        if (map.get("priority") != null) {
-            queryWrapper.eq("priority", map.get("priority"));
-        }
-        if (map.get("dueDate") != null) {
-            queryWrapper.eq("due_date", map.get("dueDate"));
-        }
-        if (map.get("ListIds") != null) {
-            queryWrapper.in("id", map.get("ListIds"));
+        if (map.get("listIds") != null) {
+            List<Long> ids = (List<Long>)map.get("listIds");
+            queryWrapper.in("id", ids);
         }
         if (map.get("sort") != null && map.get("orderBy") != null) {
             if (map.get("sort").equals("desc")) {

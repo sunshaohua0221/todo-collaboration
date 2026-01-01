@@ -1,5 +1,6 @@
 package com.example.todocollaboration.filter;
 
+import com.example.todocollaboration.entity.User;
 import com.example.todocollaboration.service.UserService;
 import com.example.todocollaboration.util.JwtUtil;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -52,11 +53,12 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         // 验证令牌并建立安全上下文
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userService.loadUserByUsername(username);
-            if (jwtUtil.validateToken(jwtToken, userDetails)) {
+            User userDetails = userService.getUserByUsername(username);
+            if (jwtUtil.validateToken(jwtToken, username)) {
                 UsernamePasswordAuthenticationToken authenticationToken =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        new UsernamePasswordAuthenticationToken(userDetails, null, null);
+//                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                authenticationToken.setDetails(userDetails);
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             }
         }

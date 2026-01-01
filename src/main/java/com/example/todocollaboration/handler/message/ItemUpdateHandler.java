@@ -36,6 +36,7 @@ public class ItemUpdateHandler extends BaseMessageHandler {
             if (updateTodoList != null) {
                 // 广播更新事件到列表
                 broadcastToList(listId, userId, MessageTypeConstant.TYPE_TODO_UPDATE, Map.of(
+                        "listId", listId,
                         "item", updateTodoList,
                         "lastModifiedBy", userId,
                         "timestamp", new Date()
