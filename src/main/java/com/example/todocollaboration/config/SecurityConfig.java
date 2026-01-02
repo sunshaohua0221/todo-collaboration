@@ -52,7 +52,7 @@ public class SecurityConfig {
                 // 配置请求授权规则
                 .authorizeHttpRequests(authz -> authz
                         // 允许所有人访问登录和注册端点
-                        .requestMatchers("/api/auth/login", "/api/auth/register", "/swagger-ui/**", "/api-docs/**").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register", "/swagger-ui/**", "/api-docs/**", "/**").permitAll()
                         // 其他所有请求都需要认证
                         .anyRequest().authenticated()
                 )

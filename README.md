@@ -95,6 +95,10 @@ mvn package
 java -jar target/todo-collaboration-*.jar
 ```
 
+测试stomp订阅：
+http://localhost:8081
+连接协议：SockJs
+
 ### API访问
 应用启动后，默认访问地址为：
 - Swagger UI文档: http://localhost:8081/swagger-ui/index.html

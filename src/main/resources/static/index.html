@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STOMP 消息订阅器 - 调试版</title>
+    <style>
+        /* 保持之前的样式不变，只修改脚本部分 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        .panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .panel h3 {
+            color: #555;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #666; font-weight: bold; }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input:focus { outline: none; border-color: #667eea; }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        button:hover { background: #5a67d8; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .status.connected { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.disconnected { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.connecting { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .log {
+            background: #333;
+            color: #fff;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+            font-size: 12px;
+        }
+        .log-item { padding: 2px 0; }
+        .log-info { color: #4fc3f7; }
+        .log-success { color: #69f0ae; }
+        .log-warning { color: #ffd740; }
+        .log-error { color: #ff5252; }
+        .log-debug { color: #ba68c8; }
+        .message-list {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .message-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .message-item:last-child { border-bottom: none; }
+        .debug-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>STOMP 调试客户端</h1>
+        <p>详细调试STOMP连接问题</p>
+    </header>
+
+    <div class="status disconnected" id="status">未连接</div>
+
+    <div class="panel">
+        <h3>连接设置</h3>
+        <div class="debug-info">
+            <strong>常见问题：</strong>
+            <ul>
+                <li>确保后端服务器正在运行（端口8081）</li>
+                <li>检查服务器是否支持STOMP over WebSocket</li>
+                <li>尝试使用SockJS协议（如果服务器支持）</li>
+            </ul>
+        </div>
+        <div class="form-group">
+            <label for="serverUrl">服务器地址</label>
+            <input type="text" id="serverUrl" value="ws://localhost:8081/ws" placeholder="ws://localhost:8081/ws">
+        </div>
+        <div class="form-group">
+            <label for="protocol">连接协议</label>
+            <select id="protocol">
+                <option value="websocket">WebSocket (ws://)</option>
+                <option value="sockjs">SockJS (http://)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="stompVersion">STOMP版本</label>
+            <select id="stompVersion">
+                <option value="1.2">1.2</option>
+                <option value="1.1">1.1</option>
+                <option value="1.0">1.0</option>
+            </select>
+        </div>
+        <div class="button-group" style="display: flex; gap: 10px;">
+            <button id="connectBtn" style="flex: 2;">连接</button>
+            <button id="disconnectBtn" style="flex: 1;" disabled>断开</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>调试信息</h3>
+        <div id="debugInfo"></div>
+        <div class="log" id="log">
+            <div class="log-info">就绪。请点击连接按钮。</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>原始消息</h3>
+        <div class="message-list" id="messageList">
+            <div style="text-align: center; color: #999; padding: 20px;">暂无消息</div>
+        </div>
+    </div>
+</div>
+
+<!-- 使用新版本的stomp.js -->
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+<!-- SockJS备用 -->
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+
+<script>
+    let stompClient = null;
+    let debugInfo = document.getElementById('debugInfo');
+    const log = document.getElementById('log');
+    const messageList = document.getElementById('messageList');
+    const statusDiv = document.getElementById('status');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const serverUrlInput = document.getElementById('serverUrl');
+    const protocolSelect = document.getElementById('protocol');
+    const stompVersionSelect = document.getElementById('stompVersion');
+
+    // 添加日志
+    function addLog(type, message) {
+        const time = new Date().toLocaleTimeString();
+        const logItem = document.createElement('div');
+        logItem.className = `log-item log-${type}`;
+        logItem.textContent = `[${time}] ${message}`;
+        log.appendChild(logItem);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    // 更新调试信息
+    function updateDebugInfo(info) {
+        debugInfo.innerHTML = `<div class="debug-info">${info}</div>`;
+    }
+
+    // 添加原始消息
+    function addRawMessage(message) {
+        // 移除空状态
+        if (messageList.children.length === 1 && messageList.children[0].style.textAlign === 'center') {
+            messageList.innerHTML = '';
+        }
+
+        const time = new Date().toLocaleTimeString();
+        const messageItem = document.createElement('div');
+        messageItem.className = 'message-item';
+        messageItem.innerHTML = `
+            <div style="color: #666; font-size: 11px;">${time}</div>
+            <div style="margin-top: 5px;">${message}</div>
+        `;
+
+        messageList.appendChild(messageItem);
+        messageList.scrollTop = messageList.scrollHeight;
+    }
+
+    // 设置状态
+    function setStatus(type, text) {
+        statusDiv.className = `status ${type}`;
+        statusDiv.textContent = text;
+    }
+
+    // 连接函数
+    async function connect() {
+        const serverUrl = serverUrlInput.value.trim();
+        const protocol = protocolSelect.value;
+        const stompVersion = stompVersionSelect.value;
+
+        if (!serverUrl) {
+            addLog('error', '请输入服务器地址');
+            return;
+        }
+
+        setStatus('connecting', '连接中...');
+        connectBtn.disabled = true;
+
+        addLog('info', `正在连接到: ${serverUrl}`);
+        addLog('debug', `协议: ${protocol}, STOMP版本: ${stompVersion}`);
+
+        try {
+            // 清理之前的连接
+            if (stompClient) {
+                stompClient.deactivate();
+                stompClient = null;
+            }
+
+            // 创建连接配置
+            const config = {
+                brokerURL: serverUrl,
+                connectHeaders: {
+                    'accept-version': stompVersion,
+                    'host': window.location.hostname,
+                    'heart-beat': '10000,10000'
+                },
+                debug: function(str) {
+                    addLog('debug', str);
+                },
+                reconnectDelay: 0, // 禁用自动重连
+                heartbeatIncoming: 10000,
+                heartbeatOutgoing: 10000,
+                onConnect: function(frame) {
+                    addLog('success', `连接成功！服务器版本: ${frame.headers.version}`);
+                    setStatus('connected', `已连接 - 版本 ${frame.headers.version}`);
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+
+                    // 显示连接详情
+                    const details = `
+                        <strong>连接详情：</strong><br>
+                        会话ID: ${frame.headers['session'] || 'N/A'}<br>
+                        服务器: ${frame.headers['server'] || 'N/A'}<br>
+                        心跳: ${frame.headers['heart-beat'] || 'N/A'}
+                    `;
+                    updateDebugInfo(details);
+
+                    // 订阅一个测试主题
+                    setTimeout(() => {
+                        subscribeTestTopic();
+                    }, 1000);
+                },
+                onStompError: function(frame) {
+                    addLog('error', `STOMP错误: ${frame.headers.message || '未知错误'}`);
+                    setStatus('disconnected', 'STOMP错误');
+                    connectBtn.disabled = false;
+
+                    updateDebugInfo(`
+                        <strong>STOMP错误：</strong><br>
+                        消息: ${frame.headers.message || '未知'}<br>
+                        详情: ${frame.body || '无'}
+                    `);
+                },
+                onWebSocketError: function(error) {
+                    addLog('error', `WebSocket错误: ${error.message || '未知错误'}`);
+                    setStatus('disconnected', 'WebSocket错误');
+                    connectBtn.disabled = false;
+                },
+                onDisconnect: function() {
+                    addLog('warning', '连接已断开');
+                    setStatus('disconnected', '未连接');
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+                }
+            };
+
+            // 如果是SockJS协议，使用不同的配置
+            if (protocol === 'sockjs') {
+                // 确保URL以http开头
+                let sockjsUrl = serverUrl;
+                if (sockjsUrl.startsWith('ws://')) {
+                    sockjsUrl = 'http://' + sockjsUrl.substring(5);
+                } else if (sockjsUrl.startsWith('wss://')) {
+                    sockjsUrl = 'https://' + sockjsUrl.substring(6);
+                }
+
+                addLog('debug', `使用SockJS连接到: ${sockjsUrl}`);
+
+                config.webSocketFactory = function() {
+                    return new SockJS(sockjsUrl);
+                };
+
+                // SockJS需要特殊的配置
+                config.brokerURL = null; // 不使用brokerURL
+            }
+
+            // 创建并激活客户端
+            stompClient = new StompJs.Client(config);
+            stompClient.activate();
+
+            // 设置超时
+            setTimeout(() => {
+                if (statusDiv.textContent.includes('连接中')) {
+                    addLog('warning', '连接超时，请检查：');
+                    addLog('warning', '1. 服务器是否运行在端口8081');
+                    addLog('warning', '2. 服务器是否正确配置了STOMP端点');
+                    addLog('warning', '3. 尝试切换协议或STOMP版本');
+                    setStatus('disconnected', '连接超时');
+                    connectBtn.disabled = false;
+
+                    if (stompClient) {
+                        stompClient.deactivate();
+                        stompClient = null;
+                    }
+                }
+            }, 10000); // 10秒超时
+
+        } catch (error) {
+            addLog('error', `连接失败: ${error.message}`);
+            setStatus('disconnected', '连接失败');
+            connectBtn.disabled = false;
+            console.error('连接错误:', error);
+        }
+    }
+
+    // 订阅测试主题
+    function subscribeTestTopic() {
+        if (!stompClient || !stompClient.connected) {
+            addLog('error', '未连接，无法订阅');
+            return;
+        }
+
+        const topics = [
+            '/topic/user_events',
+            '/topic/list/12'
+        ];
+
+        topics.forEach(topic => {
+            try {
+                const subscription = stompClient.subscribe(topic, function(message) {
+                    addLog('success', `收到消息 @ ${topic}`);
+                    addRawMessage(`主题: ${topic}\n内容: ${message.body}`);
+                });
+
+                addLog('info', `已订阅: ${topic} (ID: ${subscription.id})`);
+            } catch (error) {
+                addLog('warning', `订阅失败 ${topic}: ${error.message}`);
+            }
+        });
+    }
+
+    // 断开连接
+    function disconnect() {
+        if (stompClient) {
+            addLog('info', '正在断开连接...');
+            stompClient.deactivate();
+            stompClient = null;
+            setStatus('disconnected', '未连接');
+            connectBtn.disabled = false;
+            disconnectBtn.disabled = true;
+            updateDebugInfo('连接已断开');
+        }
+    }
+
+    // 初始化
+    function init() {
+        connectBtn.addEventListener('click', connect);
+        disconnectBtn.addEventListener('click', disconnect);
+
+        // 监听协议切换
+        protocolSelect.addEventListener('change', function() {
+            const protocol = this.value;
+            let currentUrl = serverUrlInput.value;
+
+            if (protocol === 'websocket') {
+                // 切换到WebSocket
+                if (currentUrl.startsWith('http://')) {
+                    serverUrlInput.value = 'ws://' + currentUrl.substring(7);
+                } else if (currentUrl.startsWith('https://')) {
+                    serverUrlInput.value = 'wss://' + currentUrl.substring(8);
+                }
+            } else if (protocol === 'sockjs') {
+                // 切换到SockJS
+                if (currentUrl.startsWith('ws://')) {
+                    serverUrlInput.value = 'http://' + currentUrl.substring(5);
+                } else if (currentUrl.startsWith('wss://')) {
+                    serverUrlInput.value = 'https://' + currentUrl.substring(6);
+                }
+            }
+        });
+
+        // 添加测试服务器
+        const testServers = [
+            { name: '本地测试1', url: 'ws://localhost:8080/ws', protocol: 'websocket' },
+            { name: '本地测试2', url: 'ws://localhost:8081/ws/stomp', protocol: 'websocket' },
+            { name: '本地SockJS', url: 'http://localhost:8080/ws', protocol: 'sockjs' }
+        ];
+
+        // 创建服务器选择下拉
+        const serverSelect = document.createElement('select');
+        serverSelect.id = 'serverSelect';
+        serverSelect.innerHTML = '<option value="">选择测试服务器</option>' +
+            testServers.map(s => `<option value="${s.url}">${s.name} (${s.url})</option>`).join('');
+        serverSelect.style.cssText = 'width:100%; padding:10px; margin-bottom:10px;';
+
+        serverSelect.addEventListener('change', function() {
+            if (this.value) {
+                serverUrlInput.value = this.value;
+
+                // 自动设置协议
+                if (this.value.startsWith('http')) {
+                    protocolSelect.value = 'sockjs';
+                } else {
+                    protocolSelect.value = 'websocket';
+                }
+            }
+        });
+
+        // 插入到服务器地址输入框前面
+        const urlGroup = serverUrlInput.parentElement;
+        urlGroup.parentElement.insertBefore(serverSelect, urlGroup);
+
+        addLog('info', '调试客户端已初始化');
+    }
+
+    // 页面加载完成
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

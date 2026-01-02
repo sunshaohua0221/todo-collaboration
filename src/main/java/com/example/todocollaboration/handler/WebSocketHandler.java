@@ -51,18 +51,16 @@ public class WebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         Long userId = (Long) session.getAttributes().get("userId");
-        if (userId == null) {
-            return;
+        if (userId != null) {
+            String payload = message.getPayload();
+            log.info("收到用户 {} 的消息: {}", userId, payload);
+
+            // 解析消息
+            Map<String, Object> messageData = objectMapper.readValue(payload, Map.class);
+            String type = (String) messageData.get("type");
+
+            HandlerFactory.getHandler(type).handleMessage(userId, messageData);
         }
-
-        String payload = message.getPayload();
-        log.info("收到用户 {} 的消息: {}", userId, payload);
-
-        // 解析消息
-        Map<String, Object> messageData = objectMapper.readValue(payload, Map.class);
-        String type = (String) messageData.get("type");
-
-        HandlerFactory.getHandler(type).handleMessage(userId, messageData);
     }
 
     @Override

@@ -20,11 +20,9 @@ public class WebSocketInterceptor implements HandshakeInterceptor {
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, 
                                   WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) authentication.getDetails();
-        if (user == null) {
-            return false;
+        if (authentication.getDetails() instanceof User user) {
+            attributes.put("userId", user.getId());
         }
-        attributes.put("userId", user.getId());
         return true;
     }
 
