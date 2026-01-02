@@ -28,8 +28,6 @@ public abstract class BaseMessageHandler implements MessageHandler {
     @Autowired
     protected TodoListService todoListService;
     @Autowired
-    protected TodoItemService todoItemService;
-    @Autowired
     protected PermissionService permissionService;
     @Autowired
     protected RedisTemplate<String, Object> redisTemplate;
@@ -50,7 +48,7 @@ public abstract class BaseMessageHandler implements MessageHandler {
 
         String messageJson = objectMapper.writeValueAsString(message);
 
-        // 发送消息给所有有权限的用户
+        // 发送消息给所有有权限的用户-redis里的用户是最全的
         for (Permission permission : permissions) {
             Long userId = permission.getUserId();
             if (!userId.equals(excludeUserId)) {
