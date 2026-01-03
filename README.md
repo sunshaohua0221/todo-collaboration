@@ -58,6 +58,7 @@ CREATE TABLE `todo_lists` (
   `priority` int DEFAULT NULL COMMENT '优先级1-5',
   `due_date` date DEFAULT NULL COMMENT '截止日期',
   `status` varchar(20) DEFAULT NULL COMMENT '状态：todo/in_progress/done',
+  `version` int DEFAULT 1 COMMENT '版本号，乐观锁',
   `created_at` datetime DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime DEFAULT NULL COMMENT '更新时间',
   `last_activity` datetime DEFAULT NULL COMMENT '最后活动时间',
@@ -123,3 +124,31 @@ http://localhost:8081
 4. 邀请其他用户加入任务协作
 5. 更新任务状态和进度
 6. 查看任务历史记录和活动日志
+
+
+演示步骤：
+1、注册
+2、登录
+3、查询TODO任务
+4、创建TODO任务
+5、修改TODO任务
+6、删除TODO任务
+7、授权
+8、多用户协作
+
+
+
+websocket 和 websocket stomp区别：
+WebSocket 作为底层传输协议‌，它是一种在单个TCP连接上进行全双工通信的应用层协议，允许数据在客户端和服务器之间双向实时流动。其连接建立过程通过 HTTP 请求升级实现，之后通信复用该 TCP 连接，适用于实时聊天、游戏同步等需要低延迟交互的场景。‌
+STOMP over WebSocket 提供高层级消息语义‌，它在 WebSocket 之上添加了结构化消息框架，使用基于帧（frame）的格式定义命令如 SEND、SUBSCRIBE、MESSAGE 等，使客户端和服务器能以标准化方式发送、订阅或确认消息。这种设计降低了实时通信的复杂性，尤其适合需要发布/订阅模型或消息队列的Web应用。‌
+‌两者关系可类比为 TCP 与 HTTP‌，WebSocket 类似 TCP，提供原始数据传输通道；STOMP 则类似 HTTP，在 WebSocket 的基础上定义了“请求-响应”式的交互规则。实际应用中，STOMP 通常依赖 WebSocket 作为传输载体（例如通过Spring框架的 Stomp.over(socket) 封装），以兼顾底层效率和高层抽象。‌
+
+
+特性	            MongoDB (NoSQL)	            MySQL (关系型数据库)
+数据模型	        文档模型（BSON/JSON）	        表格模型（行和列）
+模式（Schema）	灵活的动态模式（Schema-less）	严格的预定义模式（Schema）
+查询语言	        基于 JSON 的查询语法	        SQL（结构化查询语言）
+扩展性	        天然支持水平扩展（分片）	    通常垂直扩展，水平扩展较复杂
+事务支持	        支持多文档事务（从 4.0 版本开始）	完整支持 ACID 事务
+JOIN 操作	    无原生 JOIN，需用 $lookup 聚合	原生支持 JOIN
+适用场景	        非结构化/半结构化数据、高写入吞吐量	结构化数据、复杂事务、强一致性需求
